@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REBEL-OS 5.0 | COMMAND & CONTROL</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --win-gray: #c6c6c6; --win-blue: #0000aa; --desktop-bg: #004e4e;
+            --shadow-3d: 3px 3px 0px #000;
+        }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--desktop-bg); font-family: 'Tahoma', sans-serif; overflow: hidden; }
+
+        /* --- CARGA BIOS --- */
+        #boot { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; color:#0f0; font-family:'VT323'; padding:50px; z-index:10000; }
+        .progress-frame { width: 450px; height: 25px; border: 2px solid #0f0; margin-top: 20px; }
+        #progress-fill { width: 0%; height: 100%; background: #0f0; }
+
+        /* --- AUTH SYSTEM --- */
+        #auth-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9000; display:none; align-items:center; justify-content:center; }
+
+        /* --- VENTANAS INDUSTRIALES --- */
+        .window { 
+            position: absolute; background: var(--win-gray); border: 2px solid; border-color: #fff #555 #555 #fff;
+            padding: 3px; display: none; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); min-width: 380px;
+        }
+        .title-bar { 
+            background: linear-gradient(90deg, #000033, #0000ff); color: #fff; padding: 5px 12px; 
+            font-weight: bold; display: flex; justify-content: space-between; align-items: center; cursor: move;
+        }
+        .win-content { background: #d4d0c8; border: 2px solid #808080; margin: 2px; padding: 15px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2); }
+
+        /* --- ESCRITORIO --- */
+        #desktop { display: none; width: 100%; height: calc(100% - 40px); padding: 40px; }
+        .icon { width: 90px; text-align: center; color: #fff; cursor: pointer; margin-bottom: 40px; filter: drop-shadow(4px 4px 2px #000); }
+        .icon img { width: 55px; }
+        .icon span { display: block; font-size: 13px; margin-top: 10px; background: #000; padding: 3px; border: 1px solid #0f0; }
+
+        /* --- INTERRUPTORES --- */
+        .switch-row { display: flex; justify-content: space-around; margin: 20px 0; }
+        .led { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #000; margin: 0 auto 5px; background: #300; }
+        .led-on { background: #0f0; box-shadow: 0 0 10px #0f0; }
+
+        /* --- CONSOLA MIKE IA --- */
+        #terminal-display { background: #000; color: #0f0; height: 180px; overflow-y: auto; padding: 12px; font-family: 'Share Tech Mono'; border: 2px solid #808080; margin-bottom: 10px; font-size: 14px; }
+        .mike-text { color: #55ffff; font-weight: bold; }
+
+        /* --- TASKBAR --- */
+        .taskbar { position: absolute; bottom: 0; width: 100%; height: 40px; background: var(--win-gray); border-top: 3px solid #fff; display: flex; align-items: center; padding: 0 10px; z-index: 8000; box-sizing: border-box; }
+        .btn-start { font-weight: bold; border: 2px solid; border-color: #fff #000 #000 #fff; padding: 4px 15px; cursor: pointer; background: #c0c0c0; display: flex; align-items: center; gap: 8px; }
+    </style>
+</head>
+<body onload="startBios()">
+
+    <div id="boot">
+        <div style="font-size: 2rem;">REBEL-CORE v5.0 (ENGINEERING MODE)</div>
+        <div style="margin-top: 20px;">[INFO] BUSCANDO PERIFÉRICOS EXTERNOS...</div>
+        <div style="color: yellow;">[WARN] BOMBA MECÁNICA DETECTADA EN PUERTO 04...</div>
+        <div>[OK] ASISTENTE MIKE-IA SINCRONIZADO.</div>
+        <div class="progress-frame"><div id="progress-fill"></div></div>
+        <div id="perc-text">0%</div>
+    </div>
+
+    <div id="auth-overlay">
+        <div class="window" style="display:block; position:static; width:350px;">
+            <div class="title-bar"><span>Asignación de Rango</span></div>
+            <div class="win-content" style="text-align:center;">
+                <p><strong>RECONOCIMIENTO DE VOZ REQUERIDO</strong></p>
+                <input type="text" id="u-name" placeholder="Nombre del Comandante" style="width:90%; padding:8px; margin-bottom:15px; border:2px solid #000;">
+                <input type="password" id="u-key" placeholder="Código de Seguridad" style="width:90%; padding:8px; border:2px solid #000;">
+                <button onclick="saveIdentity()" style="width:100%; margin-top:20px; font-weight:bold; height:40px; cursor:pointer; background: #808080; color: #fff;">ESTABLECER MANDO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="desktop">
+        <div class="icon" onclick="openW('win-eng')"><img src="https://cdn-icons-png.flaticon.com/512/3254/3254702.png"><span>Sistemas</span></div>
+        <div class="icon" onclick="openW('win-mike')"><img src="https://cdn-icons-png.flaticon.com/512/2920/2920244.png"><span>Terminal IA</span></div>
+        <div class="icon" onclick="openW('win-files')"><img src="https://cdn-icons-png.flaticon.com/512/2965/2965335.png"><span>Manuales</span></div>
+    </div>
+
+    <div class="window" id="win-eng" style="width:420px; top:50px; left:450px;">
+        <div class="title-bar" onmousedown="drag(event, 'win-eng')"><span>Panel de Ingeniería Central</span><button onclick="closeW('win-eng')">X</button></div>
+        <div class="win-content">
+            <p style="text-align:center; font-weight:bold;">CONTROL DE RED ELÉCTRICA</p>
+            <div class="switch-row">
+                <div><div id="led1" class="led"></div><button onclick="toggleLed('led1')">ENERGÍA</button></div>
+                <div><div id="led2" class="led"></div><button onclick="toggleLed('led2')">CÁMARAS</button></div>
+                <div><div id="led3" class="led"></div><button onclick="toggleLed('led3')">ANTENA</button></div>
+            </div>
+            <div style="background:#000; color:orange; padding:8px; font-family:monospace; font-size:12px; margin-top:10px;">
+                LOG: Esperando activación de hardware real...
+            </div>
+        </div>
+    </div>
+
+    <div class="window" id="win-mike" style="width:550px; top:100px; left:50px;">
+        <div class="title-bar" onmousedown="drag(event, 'win-mike')"><span>Mike-IA Deep Logic v5.0</span><button onclick="closeW('win-mike')">X</button></div>
+        <div class="win-content">
+            <div id="terminal-display">
+                <div class="mike-text">MIKE: En línea. Listo para procesar comandos críticos.</div>
+            </div>
+            <textarea id="cmd-in" style="width:100%; height:70px; background:#111; color:#fff; border:2px solid #555; padding:10px;" placeholder="Escribe 'OVERCLOCK', 'STATUS' o 'MIKE'..."></textarea>
+            <button onclick="sendCmd()" style="width:100%; margin-top:10px; height:35px; font-weight:bold; cursor:pointer;">ENVIAR AL NÚCLEO</button>
+        </div>
+    </div>
+
+    <div class="window" id="win-files" style="width:300px; top:250px; left:180px;">
+        <div class="title-bar" onmousedown="drag(event, 'win-files')"><span>Manuales del Búnker</span><button onclick="closeW('win-files')">X</button></div>
+        <div class="win-content">
+            <div style="cursor:pointer; padding:5px; border-bottom:1px solid #808080;" onclick="alert('Manual: No conectar la bomba sin protección de tierra.')">📄 Seguridad_Electrica.pdf</div>
+            <div style="cursor:pointer; padding:5px; border-bottom:1px solid #808080;" onclick="alert('Protocolo: En caso de fallo, activar Energía Central.')">📄 Protocolo_Emergencia.txt</div>
+        </div>
+    </div>
+
+    <div class="taskbar">
+        <div class="btn-start"><img src="https://cdn-icons-png.flaticon.com/512/2267/2267718.png" width="18"> INICIO</div>
+        <div id="user-display" style="margin-left:auto; font-weight:bold; color:#000080; border:2px inset #fff; padding:2px 15px;">MODO INVITADO</div>
+    </div>
+
+    <script>
+        let userName = "";
+
+        function startBios(){
+            let f=document.getElementById('progress-fill'), t=document.getElementById('perc-text'), l=0;
+            let i=setInterval(()=>{
+                l+=Math.floor(Math.random()*4)+1; if(l>=100) l=100;
+                f.style.width=l+"%"; t.innerText=l+"%";
+                if(l==100){ clearInterval(i); setTimeout(()=>{ 
+                    document.getElementById('boot').style.display='none'; 
+                    document.getElementById('auth-overlay').style.display='flex';
+                }, 600); }
+            }, 80);
+        }
+
+        function saveIdentity(){
+            let n = document.getElementById('u-name').value;
+            let k = document.getElementById('u-key').value;
+            if(n && k){
+                userName = n;
+                document.getElementById('auth-overlay').style.display='none';
+                document.getElementById('desktop').style.display='block';
+                document.getElementById('user-display').innerText = "CMD: " + n.toUpperCase();
+                alert("Rango de Comandante asignado: " + n);
+            } else { alert("Error: Faltan credenciales de mando."); }
+        }
+
+        function toggleLed(id){
+            let led = document.getElementById(id);
+            led.classList.toggle('led-on');
+        }
+
+        function sendCmd(){
+            let v = document.getElementById('cmd-in').value.toUpperCase();
+            let d = document.getElementById('terminal-display');
+            if(v.includes("OVERCLOCK")) d.innerHTML += "<div style='color:red;'>[ALERTA] TEMPERATURA SUBIENDO... POTENCIA AL 150%</div>";
+            else if(v.includes("MIKE")) d.innerHTML += "<div class='mike-text'>MIKE: Escucho, "+userName+". El sistema está bajo tu mando absoluto.</div>";
+            else d.innerHTML += "<div>> Comando recibido: Procesando en puerto serie...</div>";
+            d.scrollTop = d.scrollHeight;
+            document.getElementById('cmd-in').value = "";
+        }
+
+        function openW(id){ document.getElementById(id).style.display='block'; }
+        function closeW(id){ document.getElementById(id).style.display='none'; }
+
+        let activeW=null, ox, oy, wx, wy;
+        function drag(e, id){
+            activeW=document.getElementById(id); ox=e.clientX; oy=e.clientY; wx=activeW.offsetLeft; wy=activeW.offsetTop;
+            document.onmousemove=(ev)=>{ activeW.style.left=(wx+ev.clientX-ox)+'px'; activeW.style.top=(wy+ev.clientY-oy)+'px'; };
+            document.onmouseup=()=>{ document.onmousemove=null; activeW=null; };
+        }
+    </script>
+</body>
+</html>
